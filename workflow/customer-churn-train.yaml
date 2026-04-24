@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+
+metadata:
+  name: churn-pipeline
+  annotations:
+    scenarios.ai.sap.com/description: "Customer Churn Prediction Pipeline"
+    scenarios.ai.sap.com/name: "Customer Churn"
+    executables.ai.sap.com/description: "Train churn prediction model"
+    executables.ai.sap.com/name: "churn-training"
+    artifacts.ai.sap.com/churndataset.kind: "dataset"
+
+labels:
+  scenarios.ai.sap.com/id: "customer-churn"
+  ai.sap.com/version: "1.0"
+
+spec:
+  imagePullSecrets:
+    - name: credstutorialrepo   # your docker registry secret
+
+  entrypoint: churnpipeline
+
+  templates:
+
+  # 🔹 Main Pipeline
+  - name: churnpipeline
+    steps:
+      - - name: train-model
+          template: churn-train-step
+
+  # 🔹 Training Step
+  - name: churn-train-step
+
+    inputs:
+      artifacts:
+        - name: churndataset
+          path: /app/data   # dataset will be mounted here
+
+    container:
+      image: docker.io/your-username/churn-model:latest   # 🔥 replace with your image
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "Starting training..."
+          python /app/training/train.py
+
+      env:
+        - name: DATA_PATH
+          value: /app/data
+        - name: MODEL_PATH
+          value: /app/model
